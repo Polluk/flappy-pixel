@@ -15,7 +15,10 @@
 int flappyPosI[5] = {4, 200, 136, 72, 8};
 int flappyPosJ[9] = {1, 128, 64, 32, 16, 8, 4, 2, 1};
 
-int wall[5] = {63, 255, 0, 255, 255};
+//int wall[5][5];
+//wall[0] = {64, 255, 0, 255, 255};
+//wall[1] = {64, 255, 240, 15, 255};
+int wall[5] = {64, 255, 0, 255, 255};
 int wallCtr = 0;
 
 int jumpFrames = 0;
@@ -65,11 +68,11 @@ uint8_t gamefield[] = {
 
 char textstring[] = "text, more text, and even more text!";
 
-void flappyDraw(){
+void flappyDraw(void){
   gamefield[flappyPosI[flappyPosI[0]]] = flappyPosJ[flappyPosJ[0]];
 }
 
-void flappyDown(){
+void flappyDown(void){
   gamefield[flappyPosI[flappyPosI[0]]] = 0;
   if(flappyPosJ[0] > 1){
     flappyPosJ[0]--;
@@ -83,7 +86,7 @@ void flappyDown(){
   }
 }
 
-void flappyUp(){
+void flappyUp(void){
   gamefield[flappyPosI[flappyPosI[0]]] = 0;
   if(flappyPosJ[0] < 8){
     flappyPosJ[0]++;
@@ -97,23 +100,27 @@ void flappyUp(){
   }
 }
 
-void crashCheck(){
+void crashCheck(void){
   if (wall[flappyPosI[0]] == gamefield[flappyPosI[flappyPosI[0]]]){
     dead = 1;
   }
 }
 
-wallDraw(){
+void wallDraw(void){
   int i, j;
   for(i = 192, j = 1; i >= 0; i -= 64, j++){
     gamefield[wall[0] + i] = wall[j];
   }
-  if((wall[0] == 8) || (wall[0] == 7)){
+  if (wall[0] == 8){ //((wall[0] == 8) || (wall[0] == 7)){
     gamefield[flappyPosI[flappyPosI[0]]] = flappyPosJ[flappyPosJ[0]] | wall[flappyPosI[0]];
+    crashCheck();
+  }
+  else if(wall[0] == 7){
+    flappyDraw();
   }
 }
 
-void wallMove(){
+void wallMove( void ){
   int i;
   for(i = 192; i >= 0; i -= 64){
     gamefield[wall[0] + i] = 0;
@@ -140,7 +147,7 @@ user_isr( void )
     jumpBtnCtrl = 0;
   }
 
-  if (jumpFrames > 2){
+  if (jumpFrames > 3){
     flappyUp();
     jumpFrames--;
   }
