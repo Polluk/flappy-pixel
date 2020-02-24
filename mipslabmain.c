@@ -11,6 +11,8 @@
 #include <pic32mx.h>  /* Declarations of system-specific addresses etc */
 #include "mipslab.h"  /* Declatations for these labs */
 
+void *stdin, *stdout, *stderr;
+
 int main(void) {
         /*
 	  This will set the peripheral bus clock to the same frequency
@@ -55,6 +57,8 @@ int main(void) {
 	SPI2CONSET = 0x8000;
 
 	display_init();
+	display_string(0, "000");
+
 	display_update();
 
 	labinit(); /* Do any lab-specific initialization */

@@ -24,9 +24,8 @@
 .align 2
 
 .text
-.global delay
-.global time2string
 .global enable_interrupt
+.global disable_interrupt
 
  #översätter binärt tal på fyra bitar till ASCII
 hexasc:
@@ -112,5 +111,10 @@ end:
 # slår på interrupts globalt
 enable_interrupt:
   ei
+  jr $ra
+  nop
+  
+disable_interrupt:
+  di
   jr $ra
   nop

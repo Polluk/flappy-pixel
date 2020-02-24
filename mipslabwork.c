@@ -8,25 +8,39 @@
 
 #include <stdint.h>   /* Declarations of uint_32 and the like */
 #include <pic32mx.h>  /* Declarations of system-specific addresses etc */
+//#include <stdlib.h>
 #include "mipslab.h"  /* Declatations for these labs */
 
-//int flappyPosI = 3;
-//int flappyPosJ = 0;
-int flappyPosI[5] = {4, 200, 136, 72, 8};
-int flappyPosJ[9] = {1, 128, 64, 32, 16, 8, 4, 2, 1};
+#define START_PAGE 1
+#define START_POS 7
+#define START_X 16
+#define WALL_SPACE 13
+#define WALL_RATE 2
 
-//int wall[5][5];
-//wall[0] = {64, 255, 0, 255, 255};
-//wall[1] = {64, 255, 240, 15, 255};
-int wall[5] = {64, 255, 0, 255, 255};
-int wallCtr = 0;
+const int FLAPPY_PAGE[4] = {START_X + 192,
+                            START_X + 128,
+                            START_X + 64,
+                            START_X};
 
-int jumpFrames = 0;
-int jumpBtnCtrl = 0;
+const int FLAPPY_POS[8] = {128, 64, 32, 16, 8, 4, 2, 1};
 
-int dead = 0;
+int iPage;
+int iPos;
 
-//int wallPos
+int wall[10][5];
+
+int wallFrames;
+int wallWait;
+int wallsActive;
+int wallRisk;
+int wallRiskIndex;
+
+int jumpFrames;
+int jumpBtnCtrl;
+
+int dead;
+int points;
+char pointsStr[3];
 
 uint8_t gamefield[] = {
   0, 0, 0, 0, 0, 0, 0, 0,
@@ -66,84 +80,109 @@ uint8_t gamefield[] = {
 	0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-char textstring[] = "text, more text, and even more text!";
 
 void flappyDraw(void){
-  gamefield[flappyPosI[flappyPosI[0]]] = flappyPosJ[flappyPosJ[0]];
+  gamefield[FLAPPY_PAGE[iPage]] |= FLAPPY_POS[iPos];
+}
+
+void flappyUndraw(void){
+  gamefield[FLAPPY_PAGE[iPage]] &= ~FLAPPY_POS[iPos];
 }
 
 void flappyDown(void){
-  gamefield[flappyPosI[flappyPosI[0]]] = 0;
-  if(flappyPosJ[0] > 1){
-    flappyPosJ[0]--;
+  flappyUndraw();
+  if(iPos > 0){
+    iPos--;
   }
-  else if(flappyPosI[0] > 1){
-    flappyPosJ[0] = 8;
-    flappyPosI[0]--;
+  else if(iPage > 0){
+    iPos = 7;
+    iPage--;
   }
   else{
     dead = 1;
   }
+  flappyDraw();
 }
 
 void flappyUp(void){
-  gamefield[flappyPosI[flappyPosI[0]]] = 0;
-  if(flappyPosJ[0] < 8){
-    flappyPosJ[0]++;
+  flappyUndraw();
+  if(iPos < 7){
+    iPos++;
   }
-  else if(flappyPosI[0] < 4){
-    flappyPosJ[0] = 1;
-    flappyPosI[0]++;
+  else if(iPage < 3){
+    iPos = 0;
+    iPage++;
   }
   else{
     dead = 1;
   }
+  flappyDraw();
 }
 
-void crashCheck(void){
-  if (wall[flappyPosI[0]] == gamefield[flappyPosI[flappyPosI[0]]]){
+void crashCheck(int wallNumber){
+  if ((wall[wallNumber][iPage] | FLAPPY_POS[iPos]) == wall[wallNumber][iPage]){
     dead = 1;
   }
 }
 
-void wallDraw(void){
+void wallMove(int wallNumber){
   int i, j;
-  for(i = 192, j = 1; i >= 0; i -= 64, j++){
-    gamefield[wall[0] + i] = wall[j];
+  for(i = 192, j = 0; i >= 0; i -= 64, j++){
+    gamefield[wall[wallNumber][4] + i] &= ~wall[wallNumber][j];
   }
-  if (wall[0] == 8){ //((wall[0] == 8) || (wall[0] == 7)){
-    gamefield[flappyPosI[flappyPosI[0]]] = flappyPosJ[flappyPosJ[0]] | wall[flappyPosI[0]];
-    crashCheck();
+  if(wall[wallNumber][4] > 1)
+  {
+    wall[wallNumber][4]--;
   }
-  else if(wall[0] == 7){
-    flappyDraw();
+  else{
+    int i;
+    for(i = wallNumber; i < wallsActive; i++){
+      int j;
+      for (j = 0; j < 5; j++){
+        wall[i][j] = wall[i + 1][j];
+      }
+    }
+    wallsActive--;
+  }
+  for(i = 192, j = 0; i >= 0; i -= 64, j++){
+    gamefield[wall[wallNumber][4] + i] |= wall[wallNumber][j];
+  }
+  if(wall[wallNumber][4] == START_X){
+    wallRisk = 1;
+    wallRiskIndex = wallNumber;
+  }
+  else if(wall[wallNumber][4] == START_X - 1){
+    points++;
+    sprintf(pointsStr, "%d", points);
+    display_string(0, pointsStr);
+    display_update();
+    wallRisk = 0;
   }
 }
 
-void wallMove( void ){
-  int i;
-  for(i = 192; i >= 0; i -= 64){
-    gamefield[wall[0] + i] = 0;
-  }
-  if(wall[0] > 0)
-  {
-    wall[0]--;
-  }
-  else{
-    wall[0] = 63;
-  }
+void randomWall(int wallNumber){
+  int hole = rand() % 20 + 2;
+  int holePage = hole / 8;
+  int holePos = hole % 8;
+
+  wall[wallNumber][0]= 255;
+  wall[wallNumber][1]= 255;
+  wall[wallNumber][2]= 255;
+  wall[wallNumber][3]= 255;
+  wall[wallNumber][4]= 64;
+
+  wall[wallNumber][holePage] = wall[wallNumber][holePage] << (8 - holePos);
+  wall[wallNumber][holePage + 1] = wall[wallNumber][holePage + 1] >> holePos;
 }
 
 /* Interrupt Service Routine */
 user_isr( void )
 {
-  if (((getbtns() >> 3) & 0x1) == 0x1){
-    if (jumpBtnCtrl == 0){
+  if ((((getbtns() >> 3) & 0x1) == 0x1) && (jumpBtnCtrl == 0)){
       jumpFrames = 7;
       jumpBtnCtrl = 1;
-    }
   }
-  else{
+  else if ((((getbtns() >> 3) & 0x1) == 0x0) && (jumpBtnCtrl == 1)){
     jumpBtnCtrl = 0;
   }
 
@@ -157,32 +196,92 @@ user_isr( void )
   else{
     flappyDown();
   }
-  flappyDraw();
 
-  wallCtr++;
-  if(wallCtr == 2){
-    wallMove();
-    wallCtr = 0;
+  if (wallRisk == 1){
+    crashCheck(wallRiskIndex);
   }
-  wallDraw();
+
+  wallFrames++;
+  if (wallFrames == WALL_RATE){
+    wallWait++;
+    if (wallWait == WALL_SPACE){
+      randomWall(wallsActive);
+      wallsActive++;
+      wallWait = 0;
+    }
+
+    int i;
+    for (i = 0; i < wallsActive; i++){
+      wallMove(i);
+
+    }
+    wallFrames = 0;
+  }
+
+  if (wallRisk == 1){
+    crashCheck(wallRiskIndex);
+  }
+
 
   if (dead == 1){
-    while(dead > 0){}
+    disable_interrupt();
   }
-
-  if((IFS(0) >> 8) & 0x1){  // kollar interrupt-flaggan
-
+  else{
     display_image(0, gamefield);
-    IFSCLR(0) = 0x100; //återställer flaggan
   }
+
+  IFSCLR(0) = 0x100; //återställer flaggan
 }
 
 /* Lab-specific initialization goes here */
 void labinit( void )
 {
-  flappyDraw();
   TRISDSET = 0xe0;    // gör knappar 4-2 redor för input
   TRISFSET = 0x2;     // gör knapp 1 redo för input
+
+  iPage = START_PAGE;
+  iPos = START_POS;
+
+  wallFrames = 0;
+  wallWait = 0;
+  wallsActive = 1;
+  wallRisk = 0;
+  wallRiskIndex = 0;
+
+  jumpFrames = 0;
+  jumpBtnCtrl = 0;
+
+  dead = 0;
+  points = 0;
+  sprintf(pointsStr, "%d", points);
+
+  int i, j;
+
+  for (i = 0; i < 10; i++){
+    for(j = 0; j < 5; j++){
+      wall[i][j] = 0;
+    }
+  }
+
+  for (i = 0; i < 256; i++){
+    gamefield[i] = 0;
+  }
+
+  flappyDraw();
+  display_string(0, pointsStr);
+  display_update();
+  display_image(0, gamefield);
+
+  T2CONSET = 0x8000;
+
+  while(1){
+    if ((((getbtns() >> 3) & 0x1) == 0x1)){
+      break;
+    }
+  }
+
+  srand(TMR2);
+  randomWall(0);
 
   T2CON = 0x0;        // nollställer kontrollfunktioner för timer 2
   T2CONSET = 0x70;    // väljer skala 1:256
@@ -199,5 +298,7 @@ void labinit( void )
 /* This function is called repetitively from the main program */
 void labwork( void )
 {
-
+  if ((dead == 1) && (((getbtns() >> 2) & 0x1) == 0x1)){
+    labinit();
+  }
 }
