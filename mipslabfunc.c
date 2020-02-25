@@ -168,8 +168,10 @@ void display_update(void) {
 		spi_send_recv(0x22);
 		spi_send_recv(i);
 
-		spi_send_recv(0x0);
-		spi_send_recv(0x10);
+		spi_send_recv(64 & 0xF);
+		spi_send_recv(0x10 | ((64 >> 4) & 0xF));
+		//spi_send_recv(0x0);
+		//spi_send_recv(0x10);
 
 		DISPLAY_CHANGE_TO_DATA_MODE;
 
