@@ -57,7 +57,7 @@ int main(void) {
 	SPI2CONSET = 0x8000;
 
 	display_init();
-	display_string(0, "000");
+	//display_string(0, "000");
 
 	display_update();
 
