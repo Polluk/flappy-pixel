@@ -2,11 +2,11 @@
 DEVICE		= 32MX320F128H
 
 # UART settings for programmer
-TTYDEV		?=/dev/ttyUSB0
+TTYDEV		?=/dev/ttyS3
 TTYBAUD		?=115200
 
 # Name of the project
-PROGNAME	= outfile
+PROGNAME	= flappy-pixel
 
 # Linkscript
 LINKSCRIPT	:= p$(shell echo "$(DEVICE)" | tr '[:upper:]' '[:lower:]').ld
@@ -14,7 +14,7 @@ LINKSCRIPT	:= p$(shell echo "$(DEVICE)" | tr '[:upper:]' '[:lower:]').ld
 # Compiler and linker flags
 CFLAGS		+= -ffreestanding -march=mips32r2 -msoft-float -Wa,-msoft-float
 ASFLAGS		+= -msoft-float
-LDFLAGS		+= -T $(LINKSCRIPT)
+LDFLAGS		+= -T $(LINKSCRIPT) -lc
 
 # Filenames
 ELFFILE		= $(PROGNAME).elf
